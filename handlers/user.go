@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -42,6 +43,18 @@ func SignUpHandler(s server.Server) http.HandlerFunc {
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
+		// Verificar si el usuario ya existe en la base de datos
+		existingUser, err := repository.GetUserByEmail(r.Context(), request.Email)
+		if err != nil && err != sql.ErrNoRows {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if existingUser != nil {
+			// El usuario ya existe, puedes manejar esto como desees
+			http.Error(w, "User alredy exists", http.StatusConflict)
+			return
+		}
+
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
