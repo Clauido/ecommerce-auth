@@ -37,7 +37,6 @@ func GetUserById(ctx context.Context, id int32) (*models.User, error) {
 func GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	return implementation.GetUserByEmail(ctx,email)
 }
-
 // func UpdateUser(ctx context.Context, user *models.User) error {
 // 	return implementation.UpdateUser(ctx, user)
 // }
