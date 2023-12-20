@@ -139,16 +139,16 @@ func MeHandler(s server.Server) http.HandlerFunc{
 			return
 		}
 
-			if claims, ok := token.Claims.(*models.AppClaims); ok && token.Valid{
-				user, err := repository.GetUserById(r.Context(), claims.UserId)
-				if err!= nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				w.Header().Set("Content-Type","application/json")
-				json.NewEncoder(w).Encode(user)
-			}else {
+		if claims, ok := token.Claims.(*models.AppClaims); ok && token.Valid{
+			user, err := repository.GetUserById(r.Context(), claims.UserId)
+			if err!= nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
+			w.Header().Set("Content-Type","application/json")
+			json.NewEncoder(w).Encode(user)
+		}else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	}
 }

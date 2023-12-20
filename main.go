@@ -98,37 +98,36 @@ go func() {
 				data, ok := message.Data.(map[string]interface{})["newUser"].(interface{})
 				if !ok {
 					fmt.Println("Error: Atributo newUser no se encuentra")
-					return
+					utils.SendResponse(config.RMQChannel, msg, "Error: Atributo newUser no se encuentra");
 				}
 				userJSON, err := json.Marshal(data)
 				if err != nil {
 					fmt.Println("Error al convertir el mapa a JSON:", err)
-					return
+					utils.SendResponse(config.RMQChannel, msg, err.Error());
 				}
 				var signUpUser models.SignUpUser
 				err = json.Unmarshal(userJSON, &signUpUser)
 				if err != nil {
 					fmt.Println("Error al convertir JSON a SignUpUser:", err)
-					return
+					utils.SendResponse(config.RMQChannel, msg, err.Error());
 				}
 				
 				user,err:=server.SignUp(context.Background(),&signUpUser)
 					if err != nil {
 					fmt.Println("Error al insertar usuario:", err)
-					return
+					utils.SendResponse(config.RMQChannel, msg, err.Error());
 				}
 				resultJSON, err := json.MarshalIndent(user, "", "  ")
 				if err != nil {
 					fmt.Println("Error al convertir a JSON:", err)
-					return
+					utils.SendResponse(config.RMQChannel, msg, err.Error());
 				}
 				utils.SendResponse(config.RMQChannel, msg, string(resultJSON));
-				return 
 			case "Login":
 				data, ok := message.Data.(map[string]interface{})["logedUser"].(interface{})
 				if !ok {
 					fmt.Println("Error: Atributo logedUser no se encuentra")
-					return
+					utils.SendResponse(config.RMQChannel, msg, "Error: Atributo logedUser no se encuentra");
 				}
 				userJSON, err := json.Marshal(data)
 				if err != nil {
@@ -139,12 +138,12 @@ go func() {
 				err = json.Unmarshal(userJSON, &loginUser)
 				if err != nil {
 					fmt.Println("Error al convertir JSON a LoginUser:", err)
-					return
+					utils.SendResponse(config.RMQChannel, msg, err.Error());
 				}
 				token,err:=server.Login(context.Background(),&loginUser)
 				if err != nil {
 					fmt.Println("Error obtener el token:", err)
-					return
+					utils.SendResponse(config.RMQChannel, msg, err.Error());
 				}
 				response := TokenResponse{
 					Token: token,
@@ -152,41 +151,45 @@ go func() {
 				resultJSON, err := json.MarshalIndent(response, "", "  ")
 				if err != nil {
 					fmt.Println("Error al convertir a JSON:", err)
-					return
+					utils.SendResponse(config.RMQChannel, msg, err.Error());
 				}
 				utils.SendResponse(config.RMQChannel, msg, string(resultJSON));
 			case "Validate":
 				tokenString, ok := message.Data.(map[string]interface{})["token"].(string)
 				if !ok {
 					fmt.Println("Error: Atributo token no se encuentra")
-					return
+					utils.SendResponse(config.RMQChannel, msg, "Error: Atributo token no se encuentra");
 				}
 				token, err := jwt.ParseWithClaims(tokenString, &models.AppClaims{}, func(token *jwt.Token) (interface{}, error) {
 					return []byte(JWT_SECRET), nil
 				})
 				if err != nil {
 					errorResponse := ErrorResponse{
-						Status: "Error parsing token",
+						Status: "invalid credentials",
 					}
 					errorJSON, err := json.MarshalIndent(errorResponse, "", "  ")
 					if err != nil {
 						fmt.Println("Error al convertir a JSON:", err)
-						return
+						utils.SendResponse(config.RMQChannel, msg, err.Error());
 					}
 					utils.SendResponse(config.RMQChannel, msg, string(errorJSON));
 					log.Fatal("Error parsing token:", err)
+					utils.SendResponse(config.RMQChannel, msg, err.Error());
 				}
 				if claims, ok := token.Claims.(*models.AppClaims); ok && token.Valid{
 					user, err := repository.GetUserById(context.Background(), claims.UserId)
 					if err!= nil {
 						log.Fatal("Error luego de obtener el usuario:", err)
+						utils.SendResponse(config.RMQChannel, msg, err.Error());
 					}
 					if err != nil {
 						fmt.Println("Error al insertar usuario:", err)
+						utils.SendResponse(config.RMQChannel, msg, err.Error());
 					}
 					resultJSON, err := json.MarshalIndent(user, "", "  ")
 					if err != nil {
 						fmt.Println("Error al convertir a JSON:", err)
+						utils.SendResponse(config.RMQChannel, msg, err.Error());
 					}
 					utils.SendResponse(config.RMQChannel, msg, string(resultJSON));
 				}else{
@@ -196,6 +199,7 @@ go func() {
 					errorJSON, err := json.MarshalIndent(errorResponse, "", "  ")
 					if err != nil {
 						fmt.Println("Error al convertir a JSON:", err)
+						utils.SendResponse(config.RMQChannel, msg, err.Error());
 					}
 					utils.SendResponse(config.RMQChannel, msg, string(errorJSON));
 				}
